@@ -1,0 +1,194 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>OLT Inventory Executive Dashboard</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.4/dist/chart.umd.min.js"></script>
+<style>
+  * { box-sizing: border-box; }
+  body {
+    margin: 0;
+    font-family: "Segoe UI", "Noto Sans Thai", Arial, sans-serif;
+    background: #f4f7fb;
+    color: #172033;
+  }
+  .dashboard {
+    width: min(1600px, 96vw);
+    margin: 20px auto;
+  }
+  .header {
+    background: linear-gradient(135deg, #102a43, #1f5f8b);
+    color: white;
+    border-radius: 18px;
+    padding: 24px 28px;
+    box-shadow: 0 10px 28px rgba(16,42,67,.16);
+  }
+  .header h1 { margin: 0 0 6px; font-size: clamp(24px, 3vw, 38px); }
+  .header p { margin: 0; opacity: .88; font-size: 14px; }
+  .summary {
+    display: grid;
+    grid-template-columns: repeat(3, 1fr);
+    gap: 14px;
+    margin: 16px 0;
+  }
+  .card {
+    background: white;
+    border-radius: 16px;
+    padding: 18px 20px;
+    box-shadow: 0 6px 20px rgba(20,40,70,.08);
+  }
+  .metric-label { color: #667085; font-size: 13px; }
+  .metric { font-size: 34px; font-weight: 750; margin-top: 4px; }
+  .charts {
+    display: grid;
+    grid-template-columns: minmax(0, 2fr) minmax(360px, 1fr);
+    gap: 16px;
+  }
+  .chart-card {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 6px 20px rgba(20,40,70,.08);
+  }
+  .chart-title { font-size: 18px; font-weight: 700; margin-bottom: 4px; }
+  .chart-subtitle { color: #667085; font-size: 12px; margin-bottom: 12px; }
+  .bar-wrap { height: 570px; }
+  .pie-wrap { height: 570px; display:flex; align-items:center; justify-content:center; }
+  .validation {
+    margin-top: 16px;
+    font-size: 12px;
+    color: #667085;
+    line-height: 1.6;
+  }
+  .validation strong { color:#344054; }
+  @media (max-width: 1000px) {
+    .charts { grid-template-columns: 1fr; }
+    .bar-wrap, .pie-wrap { height: 480px; }
+  }
+  @media (max-width: 650px) {
+    .summary { grid-template-columns: 1fr; }
+    .dashboard { width: 94vw; }
+  }
+</style>
+</head>
+<body>
+<div class="dashboard">
+  <section class="header">
+    <h1>OLT INVENTORY DASHBOARD</h1>
+    <p>Executive view — OLT distribution by province and OLT model</p>
+  </section>
+
+  <section class="summary">
+    <div class="card">
+      <div class="metric-label">Total OLT</div>
+      <div class="metric">566</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">จำนวนจังหวัด</div>
+      <div class="metric">15</div>
+    </div>
+    <div class="card">
+      <div class="metric-label">จำนวนรุ่น OLT</div>
+      <div class="metric">9</div>
+    </div>
+  </section>
+
+  <section class="charts">
+    <div class="chart-card">
+      <div class="chart-title">OLT by Province & Model</div>
+      <div class="chart-subtitle">จำนวน OLT แยกตามจังหวัด โดยแบ่งตามรุ่นจาก Column B</div>
+      <div class="bar-wrap"><canvas id="barChart"></canvas></div>
+    </div>
+
+    <div class="chart-card">
+      <div class="chart-title">OLT Distribution by Province</div>
+      <div class="chart-subtitle">สัดส่วน OLT (%) ของแต่ละจังหวัด จาก Column F</div>
+      <div class="pie-wrap"><canvas id="pieChart"></canvas></div>
+    </div>
+  </section>
+
+  <div class="validation">
+    <strong>Data validation:</strong>
+    Excel sheet: NE Report_2026-09-09_09-34-02_1 ·
+    Rows read: 566 ·
+    Duplicate OLT records removed by IP: 0 ·
+    Unknown province: 0 ·
+    Unknown model: 0.
+    OLT count uses distinct <strong>NE IP Address</strong> as the unique OLT identifier.
+  </div>
+</div>
+
+<script>
+const barData = [{"province": "นครศรีธรรมราช", "MA5600T": 34, "MA5603T": 41, "MA5608T": 43, "MA5616": 2, "MA5680T": 1, "MA5683T": 0, "MA5800-X15": 1, "MA5800-X17": 0, "MA5800-X2": 3}, {"province": "สงขลา", "MA5600T": 0, "MA5603T": 4, "MA5608T": 61, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 1}, {"province": "สุราษฎร์ธานี", "MA5600T": 2, "MA5603T": 6, "MA5608T": 40, "MA5616": 2, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 4}, {"province": "ภูเก็ต", "MA5600T": 3, "MA5603T": 20, "MA5608T": 25, "MA5616": 5, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 0}, {"province": "ปัตตานี", "MA5600T": 0, "MA5603T": 7, "MA5608T": 34, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 0}, {"province": "กระบี่", "MA5600T": 1, "MA5603T": 1, "MA5608T": 23, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 2, "MA5800-X17": 1, "MA5800-X2": 2}, {"province": "ตรัง", "MA5600T": 0, "MA5603T": 1, "MA5608T": 23, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 4}, {"province": "ชุมพร", "MA5600T": 1, "MA5603T": 0, "MA5608T": 23, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 2}, {"province": "พัทลุง", "MA5600T": 1, "MA5603T": 3, "MA5608T": 18, "MA5616": 0, "MA5680T": 0, "MA5683T": 1, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 3}, {"province": "พังงา", "MA5600T": 2, "MA5603T": 4, "MA5608T": 19, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 1}, {"province": "นราธิวาส", "MA5600T": 1, "MA5603T": 0, "MA5608T": 25, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 0}, {"province": "ยะลา", "MA5600T": 0, "MA5603T": 1, "MA5608T": 21, "MA5616": 0, "MA5680T": 0, "MA5683T": 1, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 1}, {"province": "สตูล", "MA5600T": 0, "MA5603T": 2, "MA5608T": 15, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 1}, {"province": "สมุย", "MA5600T": 1, "MA5603T": 5, "MA5608T": 9, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 0}, {"province": "ระนอง", "MA5600T": 0, "MA5603T": 0, "MA5608T": 6, "MA5616": 0, "MA5680T": 0, "MA5683T": 0, "MA5800-X15": 0, "MA5800-X17": 0, "MA5800-X2": 2}];
+const pieData = [{"province": "นครศรีธรรมราช", "count": 125}, {"province": "สงขลา", "count": 66}, {"province": "สุราษฎร์ธานี", "count": 54}, {"province": "ภูเก็ต", "count": 53}, {"province": "ปัตตานี", "count": 41}, {"province": "กระบี่", "count": 30}, {"province": "ตรัง", "count": 28}, {"province": "ชุมพร", "count": 26}, {"province": "พัทลุง", "count": 26}, {"province": "พังงา", "count": 26}, {"province": "นราธิวาส", "count": 26}, {"province": "ยะลา", "count": 24}, {"province": "สตูล", "count": 18}, {"province": "สมุย", "count": 15}, {"province": "ระนอง", "count": 8}];
+const models = ["MA5600T", "MA5603T", "MA5608T", "MA5616", "MA5680T", "MA5683T", "MA5800-X15", "MA5800-X17", "MA5800-X2"];
+
+const palette = [
+  "#2563eb","#16a34a","#f59e0b","#dc2626","#7c3aed",
+  "#0891b2","#db2777","#65a30d","#ea580c","#4f46e5",
+  "#0f766e","#b45309"
+];
+
+const barDatasets = models.map((model, i) => ({
+  label: model,
+  data: barData.map(r => r[model] || 0),
+  backgroundColor: palette[i % palette.length],
+  borderWidth: 0
+}));
+
+new Chart(document.getElementById("barChart"), {
+  type: "bar",
+  data: {
+    labels: barData.map(r => r.province),
+    datasets: barDatasets
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    interaction: { mode: "index", intersect: false },
+    scales: {
+      x: { stacked: true, ticks: { autoSkip: false, maxRotation: 55, minRotation: 35 } },
+      y: { stacked: true, beginAtZero: true, title: { display: true, text: "จำนวน OLT" } }
+    },
+    plugins: {
+      legend: { position: "bottom", labels: { boxWidth: 14, padding: 12 } },
+      tooltip: { callbacks: {
+        footer: function(items) {
+          const total = items.reduce((s, item) => s + item.parsed.y, 0);
+          return "รวมจังหวัด: " + total.toLocaleString();
+        }
+      } }
+    }
+  }
+});
+
+new Chart(document.getElementById("pieChart"), {
+  type: "pie",
+  data: {
+    labels: pieData.map(r => r.province),
+    datasets: [{
+      data: pieData.map(r => r.count),
+      backgroundColor: pieData.map((_, i) => palette[i % palette.length]),
+      borderColor: "#ffffff",
+      borderWidth: 2
+    }]
+  },
+  options: {
+    responsive: true,
+    maintainAspectRatio: false,
+    plugins: {
+      legend: { position: "right", labels: { boxWidth: 14, padding: 9 } },
+      tooltip: { callbacks: {
+        label: function(ctx) {
+          const total = ctx.dataset.data.reduce((a,b) => a+b, 0);
+          const pct = (ctx.raw / total * 100).toFixed(1);
+          return ctx.label + ": " + ctx.raw.toLocaleString() + " OLT (" + pct + "%)";
+        }
+      } }
+    }
+  }
+});
+</script>
+</body>
+</html>
